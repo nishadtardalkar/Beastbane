@@ -493,7 +493,7 @@ MonoBehaviour:
   offlineScene: 
   onlineScene: 
   offlineSceneLoadDelay: 0
-  transport: {fileID: 568561302}
+  transport: {fileID: 0}
   networkAddress: localhost
   maxConnections: 100
   disconnectInactiveConnections: 0
@@ -899,7 +899,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 35f2aa8555e15904db1946caccf320f1, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::Beastbane.Netcode.HostIntegerBroadcasterUI
-  broadcaster: {fileID: 3448647374205206308, guid: 4ba6501bc40128646b2e59745da2145c, type: 3}
+  broadcaster: {fileID: 0}
+  broadcasterPrefab: {fileID: 3448647374205206308, guid: 4ba6501bc40128646b2e59745da2145c, type: 3}
   valueToSend: 99
   incrementAfterSend: 1
   autoStartHostIfLobbyOwner: 1
