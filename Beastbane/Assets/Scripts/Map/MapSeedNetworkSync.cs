@@ -53,28 +53,33 @@ namespace Beastbane.Map
 
         private void Update()
         {
-            if (_broadcaster != null) return;
-
-            _broadcaster = FindFirstObjectByType<HostIntegerBroadcaster>();
-            if (_broadcaster == null) return;
-
-            if (NetworkServer.active)
+            // Keep polling for broadcaster until found.
+            if (_broadcaster == null)
             {
-                // Host found the spawned broadcaster — push the seed.
-                _broadcaster.BroadcastFromHost(mapGenerator.Map.Seed);
-                Debug.Log($"MapSeedNetworkSync: host sent seed={mapGenerator.Map.Seed}");
-            }
-            else
-            {
-                // Client found the broadcaster. Subscribe for future changes.
-                _broadcaster.SharedValueChanged += OnSeedReceived;
+                _broadcaster = FindFirstObjectByType<HostIntegerBroadcaster>();
+                if (_broadcaster == null) return;
 
-                // If the seed was already synced before we subscribed (common when
-                // connecting after the host broadcasted), use SharedValue directly.
-                if (!_generated && _broadcaster.SharedValue != 0)
+                if (NetworkServer.active)
                 {
-                    OnSeedReceived(_broadcaster.SharedValue);
+                    // Host found the spawned broadcaster — push the seed.
+                    _broadcaster.BroadcastFromHost(mapGenerator.Map.Seed);
+                    Debug.Log($"MapSeedNetworkSync: host sent seed={mapGenerator.Map.Seed}");
                 }
+                else
+                {
+                    // Client: subscribe first, then check current value.
+                    // Order matters — subscribe before reading SharedValue to avoid
+                    // missing a change that arrives between the two operations.
+                    _broadcaster.SharedValueChanged += OnSeedReceived;
+                }
+            }
+
+            // Client: broadcaster found but seed not yet received — keep polling
+            // SharedValue in case it was set before we subscribed (baked into the
+            // initial spawn message, so the hook never fires).
+            if (!NetworkServer.active && !_generated && _broadcaster != null && _broadcaster.SharedValue != 0)
+            {
+                OnSeedReceived(_broadcaster.SharedValue);
             }
         }
 
