@@ -44,20 +44,33 @@ namespace Beastbane.Netcode
                 TryAutoStartHost();
             }
 
-            if (!NetworkServer.active)
+            if (!NetworkServer.active && !NetworkClient.active)
             {
-                Debug.LogWarning("HostIntegerBroadcasterUI: only host/server can broadcast. Make sure lobby owner pressed Start Game.");
+                Debug.LogWarning("HostIntegerBroadcasterUI: no active Mirror client/server. Start game first.");
                 return;
             }
 
-            target = EnsureBroadcasterSpawnedOnServer(target);
-            if (target == null)
+            if (NetworkServer.active)
             {
-                Debug.LogWarning("HostIntegerBroadcasterUI: no spawned broadcaster found, and prefab spawn failed.");
-                return;
+                target = EnsureBroadcasterSpawnedOnServer(target);
+                if (target == null)
+                {
+                    Debug.LogWarning("HostIntegerBroadcasterUI: no spawned broadcaster found, and prefab spawn failed.");
+                    return;
+                }
+            }
+            else if (target == null)
+            {
+                // Client-only side: broadcaster must already be spawned by host.
+                target = FindFirstObjectByType<HostIntegerBroadcaster>();
+                if (target == null)
+                {
+                    Debug.LogWarning("HostIntegerBroadcasterUI: no spawned HostIntegerBroadcaster visible on client yet.");
+                    return;
+                }
             }
 
-            target.BroadcastFromHost(valueToSend);
+            target.SendFromLocalPeer(valueToSend);
 
             if (incrementAfterSend)
             {

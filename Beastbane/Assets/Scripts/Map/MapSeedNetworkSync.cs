@@ -40,14 +40,6 @@ namespace Beastbane.Map
         {
             if (mapGenerator == null) return;
 
-            if (!NetworkClient.active)
-            {
-                // Offline / solo play — generate immediately with normal seed logic.
-                mapGenerator.GenerateMap();
-                _generated = true;
-                return;
-            }
-
             if (NetworkServer.active)
             {
                 // Host: generate the map now and store the seed.
