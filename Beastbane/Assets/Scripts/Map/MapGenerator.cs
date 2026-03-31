@@ -18,6 +18,9 @@ namespace Beastbane.Map
         [Tooltip("Seed for reproducible generation. -1 = random.")]
         public int Seed = -1;
 
+        [Tooltip("If true, Start() will not auto-generate. MapSeedNetworkSync will drive generation once the host seed arrives.")]
+        public bool waitForNetworkSeed = false;
+
         [Header("Organic Layout")]
         [Tooltip("Base distance between rings.")]
         public float RingSpacing = 4f;
@@ -43,7 +46,8 @@ namespace Beastbane.Map
 
         void Start()
         {
-            GenerateMap();
+            if (!waitForNetworkSeed)
+                GenerateMap();
         }
 
         public MapData GenerateMap()
