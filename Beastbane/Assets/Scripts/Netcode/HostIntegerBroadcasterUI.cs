@@ -38,11 +38,6 @@ namespace Beastbane.Netcode
         public void SendConfiguredValue()
         {
             var target = ResolveBroadcaster();
-            if (target == null)
-            {
-                Debug.LogWarning("HostIntegerBroadcasterUI: HostIntegerBroadcaster not found.");
-                return;
-            }
 
             if (!NetworkServer.active)
             {
@@ -58,7 +53,7 @@ namespace Beastbane.Netcode
             target = EnsureBroadcasterSpawnedOnServer(target);
             if (target == null)
             {
-                Debug.LogWarning("HostIntegerBroadcasterUI: failed to get a spawned HostIntegerBroadcaster.");
+                Debug.LogWarning("HostIntegerBroadcasterUI: no spawned broadcaster found, and prefab spawn failed.");
                 return;
             }
 
