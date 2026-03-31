@@ -21,6 +21,8 @@ namespace Beastbane.Steam
 #if MIRROR
         [Header("Mirror")]
         [SerializeField] private NetworkManager networkManagerOverride;
+        [SerializeField] private bool spawnNetworkManagerIfMissing = true;
+        [SerializeField] private NetworkManager networkManagerPrefab;
 #endif
 
         private SteamLobbyManager _lobbyManager;
@@ -115,7 +117,31 @@ namespace Beastbane.Steam
         private NetworkManager GetNetworkManager()
         {
             if (networkManagerOverride != null) return networkManagerOverride;
-            return NetworkManager.singleton;
+
+            if (NetworkManager.singleton != null) return NetworkManager.singleton;
+
+#if UNITY_2023_1_OR_NEWER
+            var existing = FindFirstObjectByType<NetworkManager>(FindObjectsInactive.Include);
+#else
+            var existing = FindObjectOfType<NetworkManager>();
+#endif
+            if (existing != null) return existing;
+
+            if (spawnNetworkManagerIfMissing && networkManagerPrefab != null)
+            {
+                var instance = Instantiate(networkManagerPrefab);
+                if (instance != null)
+                {
+                    if (!instance.gameObject.activeSelf) instance.gameObject.SetActive(true);
+                    return instance;
+                }
+            }
+
+            Debug.LogWarning(
+                "SteamMirrorCoordinator: NetworkManager not found. " +
+                "Add one to the scene, set NetworkManager.singleton, or assign networkManagerPrefab on SteamMirrorCoordinator."
+            );
+            return null;
         }
 
         private void EnsureMirrorHostStarted()

@@ -15,6 +15,7 @@ namespace Beastbane.Netcode
         [SerializeField] private HostIntegerBroadcaster broadcaster;
         [SerializeField] private int valueToSend = 1;
         [SerializeField] private bool incrementAfterSend = true;
+        [SerializeField] private bool autoStartHostIfLobbyOwner = true;
 #if ENABLE_INPUT_SYSTEM
         [SerializeField] private Key debugSendKey = Key.F8;
 #else
@@ -44,7 +45,12 @@ namespace Beastbane.Netcode
 
             if (!NetworkServer.active)
             {
-                Debug.LogWarning("HostIntegerBroadcasterUI: only host/server can broadcast.");
+                TryAutoStartHost();
+            }
+
+            if (!NetworkServer.active)
+            {
+                Debug.LogWarning("HostIntegerBroadcasterUI: only host/server can broadcast. Make sure lobby owner pressed Start Game.");
                 return;
             }
 
@@ -61,6 +67,25 @@ namespace Beastbane.Netcode
             if (broadcaster != null) return broadcaster;
             broadcaster = FindFirstObjectByType<HostIntegerBroadcaster>();
             return broadcaster;
+        }
+
+        private void TryAutoStartHost()
+        {
+            if (!autoStartHostIfLobbyOwner) return;
+
+#if STEAMWORKS_NET
+            var lobby = Steam.SteamLobbyManager.Instance;
+            if (lobby == null || !lobby.InLobby || !lobby.IsLobbyOwner) return;
+
+            var coordinator = FindFirstObjectByType<Steam.SteamMirrorCoordinator>();
+            if (coordinator == null)
+            {
+                Debug.LogWarning("HostIntegerBroadcasterUI: SteamMirrorCoordinator not found.");
+                return;
+            }
+
+            coordinator.StartGameFromHost();
+#endif
         }
     }
 }
