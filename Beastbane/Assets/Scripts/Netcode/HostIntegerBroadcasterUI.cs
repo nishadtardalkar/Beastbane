@@ -1,6 +1,10 @@
 using Mirror;
 using UnityEngine;
 
+#if ENABLE_INPUT_SYSTEM
+using UnityEngine.InputSystem;
+#endif
+
 namespace Beastbane.Netcode
 {
     /// <summary>
@@ -11,13 +15,12 @@ namespace Beastbane.Netcode
         [SerializeField] private HostIntegerBroadcaster broadcaster;
         [SerializeField] private int valueToSend = 1;
         [SerializeField] private bool incrementAfterSend = true;
+#if ENABLE_INPUT_SYSTEM
+        [SerializeField] private Key debugSendKey = Key.F8;
+#else
         [SerializeField] private KeyCode debugSendKey = KeyCode.F8;
+#endif
 
-        private void Update()
-        {
-            if (!Input.GetKeyDown(debugSendKey)) return;
-            SendConfiguredValue();
-        }
 
         public void SetValueFromString(string text)
         {
