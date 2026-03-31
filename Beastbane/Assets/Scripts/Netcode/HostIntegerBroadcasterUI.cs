@@ -13,6 +13,7 @@ namespace Beastbane.Netcode
     public sealed class HostIntegerBroadcasterUI : MonoBehaviour
     {
         [SerializeField] private HostIntegerBroadcaster broadcaster;
+        [SerializeField] private HostIntegerBroadcaster broadcasterPrefab;
         [SerializeField] private int valueToSend = 1;
         [SerializeField] private bool incrementAfterSend = true;
         [SerializeField] private bool autoStartHostIfLobbyOwner = true;
@@ -54,6 +55,13 @@ namespace Beastbane.Netcode
                 return;
             }
 
+            target = EnsureBroadcasterSpawnedOnServer(target);
+            if (target == null)
+            {
+                Debug.LogWarning("HostIntegerBroadcasterUI: failed to get a spawned HostIntegerBroadcaster.");
+                return;
+            }
+
             target.BroadcastFromHost(valueToSend);
 
             if (incrementAfterSend)
@@ -64,9 +72,56 @@ namespace Beastbane.Netcode
 
         private HostIntegerBroadcaster ResolveBroadcaster()
         {
-            if (broadcaster != null) return broadcaster;
+            if (broadcaster != null && broadcaster.gameObject.scene.IsValid()) return broadcaster;
             broadcaster = FindFirstObjectByType<HostIntegerBroadcaster>();
             return broadcaster;
+        }
+
+        private HostIntegerBroadcaster EnsureBroadcasterSpawnedOnServer(HostIntegerBroadcaster current)
+        {
+            if (!NetworkServer.active) return null;
+
+            if (current != null &&
+                current.TryGetComponent<NetworkIdentity>(out var currentIdentity) &&
+                currentIdentity.isServer)
+            {
+                return current;
+            }
+
+            HostIntegerBroadcaster prefabToSpawn = broadcasterPrefab;
+            if (prefabToSpawn == null && broadcaster != null && !broadcaster.gameObject.scene.IsValid())
+            {
+                // Support the common case where a prefab asset was assigned to "broadcaster".
+                prefabToSpawn = broadcaster;
+            }
+
+            if (prefabToSpawn == null)
+            {
+                Debug.LogWarning("HostIntegerBroadcasterUI: assign broadcasterPrefab (network spawnable) in inspector.");
+                return null;
+            }
+
+            var manager = NetworkManager.singleton;
+            if (manager != null && !manager.spawnPrefabs.Contains(prefabToSpawn.gameObject))
+            {
+                Debug.LogWarning(
+                    "HostIntegerBroadcasterUI: broadcasterPrefab is not in NetworkManager.spawnPrefabs. " +
+                    "Add it there so clients can spawn it correctly."
+                );
+                manager.spawnPrefabs.Add(prefabToSpawn.gameObject);
+            }
+
+            var instance = Instantiate(prefabToSpawn);
+            if (!instance.TryGetComponent<NetworkIdentity>(out var identity))
+            {
+                Debug.LogError("HostIntegerBroadcasterUI: broadcaster prefab must have NetworkIdentity.");
+                Destroy(instance.gameObject);
+                return null;
+            }
+
+            NetworkServer.Spawn(instance.gameObject);
+            broadcaster = instance;
+            return instance;
         }
 
         private void TryAutoStartHost()

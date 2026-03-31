@@ -8,6 +8,7 @@ namespace Beastbane.Netcode
     /// Host/server-owned broadcaster that syncs one integer to all players.
     /// Attach this to a GameObject with NetworkIdentity.
     /// </summary>
+    [RequireComponent(typeof(NetworkIdentity))]
     public sealed class HostIntegerBroadcaster : NetworkBehaviour
     {
         [SyncVar(hook = nameof(OnSharedValueChanged))]
@@ -23,19 +24,25 @@ namespace Beastbane.Netcode
         [Server]
         public void BroadcastFromHost(int value)
         {
-            sharedValue = value;
-            RpcValueBroadcast(value);
-            Debug.Log($"HostIntegerBroadcaster: host broadcast value={value}");
-        }
+            if (netIdentity == null)
+            {
+                Debug.LogError("HostIntegerBroadcaster: missing NetworkIdentity component.");
+                return;
+            }
 
-        [ClientRpc]
-        private void RpcValueBroadcast(int value)
-        {
-            Debug.Log($"HostIntegerBroadcaster: client received value={value}");
+            if (!isServer)
+            {
+                Debug.LogWarning("HostIntegerBroadcaster: object is not spawned on server yet.");
+                return;
+            }
+
+            sharedValue = value;
+            Debug.Log($"HostIntegerBroadcaster: host broadcast value={value}");
         }
 
         private void OnSharedValueChanged(int oldValue, int newValue)
         {
+            Debug.Log($"HostIntegerBroadcaster: value updated {oldValue} -> {newValue}");
             SharedValueChanged?.Invoke(newValue);
         }
     }
