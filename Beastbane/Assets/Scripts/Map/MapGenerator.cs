@@ -18,7 +18,7 @@ namespace Beastbane.Map
         [Tooltip("Seed for reproducible generation. -1 = random.")]
         public int Seed = -1;
 
-        [Tooltip("If true, Start() will not auto-generate. MapSeedNetworkSync will drive generation once the host seed arrives.")]
+        [Tooltip("If true, Start() will not auto-generate. A network sync component (for example MapSpawner) should trigger generation after seed sync.")]
         public bool waitForNetworkSeed = false;
 
         [Header("Organic Layout")]

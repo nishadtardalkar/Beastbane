@@ -11,8 +11,10 @@ GameObject:
   - component: {fileID: 2090223604780697041}
   - component: {fileID: 8758064444358331865}
   - component: {fileID: 3448647374205206308}
+  - component: {fileID: -3684266291131880294}
+  - component: {fileID: 6208979145342783649}
   m_Layer: 0
-  m_Name: IntegerBroadcaster
+  m_Name: MapSpawner
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -46,7 +48,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Mirror::Mirror.NetworkIdentity
   sceneId: 0
-  _assetId: 0
+  _assetId: 1267669036
   serverOnly: 0
   visibility: 0
   hasSpawned: 0
@@ -61,8 +63,61 @@ MonoBehaviour:
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 8625e08823085a844944b53551832b59, type: 3}
   m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::Beastbane.Netcode.HostIntegerBroadcaster
+  m_EditorClassIdentifier: Assembly-CSharp::Beastbane.Netcode.MapSpawner
   syncDirection: 0
   syncMode: 0
   syncInterval: 0
-  sharedValue: 0
+  mapGenerator: {fileID: 0}
+  mapSeed: -2147483648
+--- !u!114 &-3684266291131880294
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 4269796877427233921}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 981ccfda0bf593b43835e34ac4c7dc7d, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::Beastbane.Map.MapGenerator
+  RingCount: 4
+  NodeDensity: 6
+  MinNodesPerRing: 3
+  Seed: -1
+  waitForNetworkSeed: 1
+  RingSpacing: 4
+  RadialJitter: 1.2
+  AngularJitterFraction: 0.35
+  MinConnections: 2
+  MaxConnections: 3
+  MaxConnectionDistance: 10
+--- !u!114 &6208979145342783649
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 4269796877427233921}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 48b27cb6190f8b94e8949f69d4db0e0c, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::Beastbane.Map.MapVisualizer
+  Generator: {fileID: 0}
+  NodeTypeSprites:
+  - {fileID: 0}
+  - {fileID: 0}
+  - {fileID: 0}
+  - {fileID: 0}
+  - {fileID: 0}
+  - {fileID: 0}
+  StartSprite: {fileID: 0}
+  BossSprite: {fileID: 0}
+  NodeScale: 1
+  NodeSortingOrder: 10
+  DashLength: 0.3
+  GapLength: 0.2
+  PathWidth: 0.08
+  PathColor: {r: 0.85, g: 0.8, b: 0.55, a: 0.8}
+  PathSortingOrder: 5

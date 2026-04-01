@@ -360,7 +360,7 @@ MonoBehaviour:
   m_OnCullStateChanged:
     m_PersistentCalls:
       m_Calls: []
-  m_text: Button
+  m_text: Play
   m_isRightToLeft: 0
   m_fontAsset: {fileID: 11400000, guid: 8f586378b4e144a9851e7b34d9b748ee, type: 2}
   m_sharedMaterial: {fileID: 2180264, guid: 8f586378b4e144a9851e7b34d9b748ee, type: 2}
@@ -535,6 +535,50 @@ MonoBehaviour:
   Timeout: 25
   AllowSteamRelay: 1
   UseNextGenSteamNetworking: 1
+--- !u!1 &603515825
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 603515826}
+  - component: {fileID: 603515827}
+  m_Layer: 0
+  m_Name: SceneManager
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &603515826
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 603515825}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &603515827
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 603515825}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: b2adf97c220459a46bfb41bf7c996a45, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::Beastbane.Netcode.NetworkSpawner
 --- !u!1 &619394800
 GameObject:
   m_ObjectHideFlags: 0
@@ -722,105 +766,6 @@ RectTransform:
   m_AnchoredPosition: {x: 0, y: 0}
   m_SizeDelta: {x: 0, y: 0}
   m_Pivot: {x: 0, y: 0}
---- !u!1 &949425111
-GameObject:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  serializedVersion: 6
-  m_Component:
-  - component: {fileID: 949425112}
-  - component: {fileID: 949425113}
-  - component: {fileID: 949425114}
-  - component: {fileID: 949425115}
-  m_Layer: 0
-  m_Name: Map
-  m_TagString: Untagged
-  m_Icon: {fileID: 0}
-  m_NavMeshLayer: 0
-  m_StaticEditorFlags: 0
-  m_IsActive: 1
---- !u!4 &949425112
-Transform:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 949425111}
-  serializedVersion: 2
-  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 0, y: 0, z: 0}
-  m_LocalScale: {x: 1, y: 1, z: 1}
-  m_ConstrainProportionsScale: 0
-  m_Children: []
-  m_Father: {fileID: 0}
-  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
---- !u!114 &949425113
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 949425111}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 981ccfda0bf593b43835e34ac4c7dc7d, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::Beastbane.Map.MapGenerator
-  RingCount: 4
-  NodeDensity: 6
-  MinNodesPerRing: 3
-  Seed: -1
-  waitForNetworkSeed: 1
-  RingSpacing: 4
-  RadialJitter: 1.2
-  AngularJitterFraction: 0.35
-  MinConnections: 2
-  MaxConnections: 3
-  MaxConnectionDistance: 10
---- !u!114 &949425114
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 949425111}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: cfd1dc7175bd5a648ad527d0332cd6f5, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::Beastbane.Map.MapSeedNetworkSync
-  mapGenerator: {fileID: 949425113}
---- !u!114 &949425115
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 949425111}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 48b27cb6190f8b94e8949f69d4db0e0c, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::Beastbane.Map.MapVisualizer
-  Generator: {fileID: 949425113}
-  NodeTypeSprites:
-  - {fileID: 0}
-  - {fileID: 0}
-  - {fileID: 0}
-  - {fileID: 0}
-  - {fileID: 0}
-  - {fileID: 0}
-  StartSprite: {fileID: 0}
-  BossSprite: {fileID: 0}
-  NodeScale: 1
-  NodeSortingOrder: 10
-  DashLength: 0.3
-  GapLength: 0.2
-  PathWidth: 0.08
-  PathColor: {r: 0.85, g: 0.8, b: 0.55, a: 0.8}
-  PathSortingOrder: 5
 --- !u!1 &1072169471
 GameObject:
   m_ObjectHideFlags: 0
@@ -834,7 +779,7 @@ GameObject:
   - component: {fileID: 1072169474}
   - component: {fileID: 1072169473}
   m_Layer: 5
-  m_Name: Send
+  m_Name: Play
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -904,10 +849,10 @@ MonoBehaviour:
   m_OnClick:
     m_PersistentCalls:
       m_Calls:
-      - m_Target: {fileID: 1227654964}
-        m_TargetAssemblyTypeName: Beastbane.Netcode.HostIntegerBroadcasterUI, Assembly-CSharp
-        m_MethodName: SendConfiguredValue
-        m_Mode: 1
+      - m_Target: {fileID: 603515827}
+        m_TargetAssemblyTypeName: Beastbane.Netcode.NetworkSpawner, Assembly-CSharp
+        m_MethodName: Spawn
+        m_Mode: 3
         m_Arguments:
           m_ObjectArgument: {fileID: 0}
           m_ObjectArgumentAssemblyTypeName: UnityEngine.Object, UnityEngine
@@ -954,56 +899,6 @@ CanvasRenderer:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1072169471}
   m_CullTransparentMesh: 1
---- !u!1 &1227654962
-GameObject:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  serializedVersion: 6
-  m_Component:
-  - component: {fileID: 1227654963}
-  - component: {fileID: 1227654964}
-  m_Layer: 0
-  m_Name: Broadcaster
-  m_TagString: Untagged
-  m_Icon: {fileID: 0}
-  m_NavMeshLayer: 0
-  m_StaticEditorFlags: 0
-  m_IsActive: 1
---- !u!4 &1227654963
-Transform:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1227654962}
-  serializedVersion: 2
-  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 0, y: 0, z: 0}
-  m_LocalScale: {x: 1, y: 1, z: 1}
-  m_ConstrainProportionsScale: 0
-  m_Children: []
-  m_Father: {fileID: 0}
-  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
---- !u!114 &1227654964
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1227654962}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 35f2aa8555e15904db1946caccf320f1, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::Beastbane.Netcode.HostIntegerBroadcasterUI
-  broadcaster: {fileID: 0}
-  broadcasterPrefab: {fileID: 3448647374205206308, guid: 4ba6501bc40128646b2e59745da2145c, type: 3}
-  valueToSend: 99
-  incrementAfterSend: 1
-  autoStartHostIfLobbyOwner: 1
-  debugSendKey: 289
 --- !u!1 &1498077201
 GameObject:
   m_ObjectHideFlags: 0
@@ -1137,7 +1032,6 @@ SceneRoots:
   - {fileID: 1498077202}
   - {fileID: 1532537574}
   - {fileID: 309581018}
-  - {fileID: 1227654963}
   - {fileID: 692385931}
   - {fileID: 568561300}
-  - {fileID: 949425112}
+  - {fileID: 603515826}
