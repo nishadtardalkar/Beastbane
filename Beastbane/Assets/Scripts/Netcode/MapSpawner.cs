@@ -1,6 +1,7 @@
+using Beastbane.Map;
+using Beastbane.UI;
 using Mirror;
 using UnityEngine;
-using Beastbane.Map;
 
 namespace Beastbane.Netcode
 {
@@ -12,6 +13,9 @@ namespace Beastbane.Netcode
     public sealed class MapSpawner : NetworkBehaviour
     {
         [SerializeField] private MapGenerator mapGenerator;
+
+        [Tooltip("Name of the SceneSwitcher child to parent under.")]
+        [SerializeField] private string _mapSceneName = "MapScene";
 
         [SyncVar(hook = nameof(OnSeedChanged))]
         [SerializeField] private int mapSeed = int.MinValue;
@@ -29,20 +33,36 @@ namespace Beastbane.Netcode
                 return;
             }
 
-            // Generation is controlled by this network flow.
             mapGenerator.waitForNetworkSeed = true;
         }
 
         public override void OnStartServer()
         {
             base.OnStartServer();
+            ReparentUnderMapScene();
             EnsureServerSeedAndGenerate();
         }
 
         public override void OnStartClient()
         {
             base.OnStartClient();
+            ReparentUnderMapScene();
             TryGenerateFromSyncedSeed();
+        }
+
+        private void ReparentUnderMapScene()
+        {
+            var switcher = FindAnyObjectByType<SceneSwitcher>();
+            if (switcher == null) return;
+
+            var mapScene = switcher.GetScene(_mapSceneName);
+            if (mapScene == null)
+            {
+                Debug.LogWarning($"MapSpawner: SceneSwitcher has no child named '{_mapSceneName}'.");
+                return;
+            }
+
+            transform.SetParent(mapScene.transform, true);
         }
 
         private void OnSeedChanged(int oldSeed, int newSeed)

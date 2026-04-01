@@ -35,6 +35,9 @@ namespace Beastbane.Netcode
         private readonly Dictionary<int, GameObject> _playerSpriteObjects = new();
         private bool _spritesNeedRefresh;
 
+        [Tooltip("Name of the SceneSwitcher child to parent under.")]
+        [SerializeField] private string _mapSceneName = "MapScene";
+
         private MapVisualizer _visualizer;
         private MapGenerator _mapGenerator;
         private SceneSwitcher _sceneSwitcher;
@@ -45,6 +48,7 @@ namespace Beastbane.Netcode
         public override void OnStartServer()
         {
             base.OnStartServer();
+            ReparentUnderMapScene();
             NetworkServer.OnConnectedEvent += OnServerPlayerConnected;
             PlaceAllPlayersAtStart();
         }
@@ -71,6 +75,7 @@ namespace Beastbane.Netcode
         public override void OnStartClient()
         {
             base.OnStartClient();
+            ReparentUnderMapScene();
             _playerNodes.OnChange += OnDictChanged;
             _spritesNeedRefresh = true;
         }
@@ -170,6 +175,7 @@ namespace Beastbane.Netcode
             if (!_playerSpriteObjects.TryGetValue(connectionId, out var spriteGo) || spriteGo == null)
             {
                 spriteGo = new GameObject($"PlayerIcon_{connectionId}");
+                spriteGo.transform.SetParent(transform, true);
                 var sr = spriteGo.AddComponent<SpriteRenderer>();
                 sr.sprite = _playerSprite != null ? _playerSprite : GetFallbackSprite();
                 sr.sortingOrder = _playerSortingOrder;
@@ -237,6 +243,22 @@ namespace Beastbane.Netcode
             if (_sceneSwitcher == null) return;
 
             _sceneSwitcher.SwitchTo(sceneIndex);
+        }
+
+        private void ReparentUnderMapScene()
+        {
+            if (_sceneSwitcher == null)
+                _sceneSwitcher = FindAnyObjectByType<SceneSwitcher>();
+            if (_sceneSwitcher == null) return;
+
+            var mapScene = _sceneSwitcher.GetScene(_mapSceneName);
+            if (mapScene == null)
+            {
+                Debug.LogWarning($"PlayerMapState: SceneSwitcher has no child named '{_mapSceneName}'.");
+                return;
+            }
+
+            transform.SetParent(mapScene.transform, true);
         }
 
         [Server]
