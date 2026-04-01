@@ -29,6 +29,7 @@ namespace Beastbane.Netcode
         private readonly SyncDictionary<int, string> _playerNodes = new();
 
         private readonly Dictionary<int, GameObject> _playerSpriteObjects = new();
+        private bool _spritesNeedRefresh;
 
         private MapVisualizer _visualizer;
         private MapGenerator _mapGenerator;
@@ -66,12 +67,7 @@ namespace Beastbane.Netcode
         {
             base.OnStartClient();
             _playerNodes.OnChange += OnDictChanged;
-
-            foreach (var kvp in _playerNodes)
-            {
-                PlayerNodeChanged?.Invoke(kvp.Key, string.Empty, kvp.Value);
-                UpdatePlayerSprite(kvp.Key, kvp.Value);
-            }
+            _spritesNeedRefresh = true;
         }
 
         public override void OnStopClient()
@@ -79,6 +75,20 @@ namespace Beastbane.Netcode
             base.OnStopClient();
             _playerNodes.OnChange -= OnDictChanged;
             ClearAllSprites();
+        }
+
+        private void LateUpdate()
+        {
+            if (!_spritesNeedRefresh) return;
+            if (_playerNodes.Count == 0) return;
+
+            var vis = FindVisualizer();
+            if (vis == null || vis.NodeObjects.Count == 0) return;
+
+            foreach (var kvp in _playerNodes)
+                UpdatePlayerSprite(kvp.Key, kvp.Value);
+
+            _spritesNeedRefresh = false;
         }
 
         public string GetNodeId(int connectionId) =>
