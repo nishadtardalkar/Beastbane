@@ -75,6 +75,7 @@ namespace Beastbane.Netcode
                 conn?.identity != null)
             {
                 _activePlayerNetId = conn.identity.netId;
+                Debug.Log(_activePlayerNetId);
             }
             else
             {
@@ -118,6 +119,19 @@ namespace Beastbane.Netcode
                 SetActiveConnection(_turnOrder[0]);
             else if (_turnOrder.Count == 0)
                 SetActiveConnection(-1);
+        }
+
+        private void Update()
+        {
+            if (!isServer) return;
+            if (_activeConnectionId < 0 || _activePlayerNetId != 0) return;
+
+            if (NetworkServer.connections.TryGetValue(_activeConnectionId, out var conn) &&
+                conn?.identity != null)
+            {
+                _activePlayerNetId = conn.identity.netId;
+                Debug.Log($"TurnState: resolved active player netId={_activePlayerNetId} for conn {_activeConnectionId}");
+            }
         }
 
         private void OnActivePlayerChanged(int oldId, int newId)

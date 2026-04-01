@@ -18,9 +18,22 @@ namespace Beastbane.Map
 
         private void OnMouseDown()
         {
+            Debug.Log($"MapNodeClickHandler: clicked node '{NodeId}'");
+
             if (_turnState == null)
                 _turnState = FindAnyObjectByType<TurnState>();
-            if (_turnState == null || !_turnState.IsMyTurn) return;
+
+            if (_turnState == null)
+            {
+                Debug.LogWarning("MapNodeClickHandler: TurnState not found.");
+                return;
+            }
+
+            if (!_turnState.IsMyTurn)
+            {
+                Debug.Log($"MapNodeClickHandler: not my turn (active conn={_turnState.ActiveConnectionId}).");
+                return;
+            }
 
             if (_playerMapState == null)
                 _playerMapState = FindAnyObjectByType<PlayerMapState>();
