@@ -1,4 +1,4 @@
-using System;
+using Beastbane.Steam;
 using Mirror;
 using UnityEngine;
 
@@ -6,16 +6,21 @@ namespace Beastbane.Netcode
 {
     public class NetworkSpawner : MonoBehaviour
     {
-
-        private void Awake()
+        /// <summary>
+        /// Starts Mirror host via SteamMirrorCoordinator, then spawns all
+        /// registered prefabs. Hook to a Button.onClick (no args).
+        /// </summary>
+        public void StartGame()
         {
-            // Start the NetworkServer via the NetworkManager, if not already running.
-            if (NetworkManager.singleton != null && !NetworkServer.active)
+            var coordinator = FindAnyObjectByType<SteamMirrorCoordinator>();
+            if (coordinator == null)
             {
-                NetworkManager.singleton.StartServer();
+                Debug.LogError("NetworkSpawner: SteamMirrorCoordinator not found in scene.");
+                return;
             }
-        }
 
+            coordinator.StartGameFromHost();
+        }
 
         /// <summary>
         /// Use from Button.onClick — pass the int matching the SpawnObject enum
