@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using Beastbane.Map;
+using Beastbane.UI;
 using Mirror;
 using UnityEngine;
 
@@ -28,11 +29,15 @@ namespace Beastbane.Netcode
         /// <summary>Maps connectionId -> current MapNode.Id</summary>
         private readonly SyncDictionary<int, string> _playerNodes = new();
 
+        [SyncVar(hook = nameof(OnActiveSceneChanged))]
+        private int _activeSceneIndex = -1;
+
         private readonly Dictionary<int, GameObject> _playerSpriteObjects = new();
         private bool _spritesNeedRefresh;
 
         private MapVisualizer _visualizer;
         private MapGenerator _mapGenerator;
+        private SceneSwitcher _sceneSwitcher;
 
         /// <summary>Fires on all clients: (connectionId, oldNodeId, newNodeId)</summary>
         public event Action<int, string, string> PlayerNodeChanged;
@@ -107,6 +112,7 @@ namespace Beastbane.Netcode
             _playerNodes[connectionId] = nodeId;
             PlayerNodeChanged?.Invoke(connectionId, oldId, nodeId);
             UpdatePlayerSprite(connectionId, nodeId);
+            UpdateActiveScene(nodeId);
         }
 
         /// <summary>Owning client requests a move via the server.</summary>
@@ -203,6 +209,34 @@ namespace Beastbane.Netcode
                 if (kvp.Value != null) Destroy(kvp.Value);
             }
             _playerSpriteObjects.Clear();
+        }
+
+        [Server]
+        private void UpdateActiveScene(string nodeId)
+        {
+            if (_mapGenerator == null)
+                _mapGenerator = FindAnyObjectByType<MapGenerator>();
+            if (_mapGenerator == null || _mapGenerator.Map == null) return;
+
+            var node = _mapGenerator.Map.GetNodeById(nodeId);
+            if (node == null) return;
+
+            _activeSceneIndex = node.NodeType;
+            SwitchLocalScene(_activeSceneIndex);
+        }
+
+        private void OnActiveSceneChanged(int oldIndex, int newIndex)
+        {
+            SwitchLocalScene(newIndex);
+        }
+
+        private void SwitchLocalScene(int sceneIndex)
+        {
+            if (_sceneSwitcher == null)
+                _sceneSwitcher = FindAnyObjectByType<SceneSwitcher>();
+            if (_sceneSwitcher == null) return;
+
+            _sceneSwitcher.SwitchTo(sceneIndex);
         }
 
         [Server]
