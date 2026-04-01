@@ -104,6 +104,11 @@ namespace Beastbane.Map
 
             _nodeObjects[node.Id] = go;
 
+            go.AddComponent<CircleCollider2D>();
+
+            var clickHandler = go.AddComponent<MapNodeClickHandler>();
+            clickHandler.NodeId = node.Id;
+
             var sr = go.AddComponent<SpriteRenderer>();
             sr.sortingOrder = NodeSortingOrder;
 
