@@ -24,6 +24,8 @@ namespace Beastbane.Map
         public Color PathColor = new Color(0.85f, 0.8f, 0.55f, 0.8f);
         public int PathSortingOrder = 5;
 
+        private readonly Dictionary<string, GameObject> _nodeObjects = new();
+
         Transform _nodesParent;
         Transform _pathsParent;
 
@@ -44,6 +46,11 @@ namespace Beastbane.Map
         }
 
         bool _built;
+
+        public IReadOnlyDictionary<string, GameObject> NodeObjects => _nodeObjects;
+
+        public GameObject GetNodeObject(string nodeId) =>
+            _nodeObjects.TryGetValue(nodeId, out var go) ? go : null;
 
         public void BuildVisuals(MapData map)
         {
@@ -94,6 +101,8 @@ namespace Beastbane.Map
             if (node.IsBoss) scale *= 2.5f;
             else if (node.IsStart) scale *= 1.5f;
             go.transform.localScale = Vector3.one * scale;
+
+            _nodeObjects[node.Id] = go;
 
             var sr = go.AddComponent<SpriteRenderer>();
             sr.sortingOrder = NodeSortingOrder;
@@ -187,6 +196,7 @@ namespace Beastbane.Map
 
         public void ClearVisuals()
         {
+            _nodeObjects.Clear();
             if (_nodesParent != null) DestroyImmediate(_nodesParent.gameObject);
             if (_pathsParent != null) DestroyImmediate(_pathsParent.gameObject);
         }
