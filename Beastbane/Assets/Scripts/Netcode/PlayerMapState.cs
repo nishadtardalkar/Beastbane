@@ -31,9 +31,36 @@ namespace Beastbane.Netcode
         private readonly Dictionary<int, GameObject> _playerSpriteObjects = new();
 
         private MapVisualizer _visualizer;
+        private MapGenerator _mapGenerator;
 
         /// <summary>Fires on all clients: (connectionId, oldNodeId, newNodeId)</summary>
         public event Action<int, string, string> PlayerNodeChanged;
+
+        public override void OnStartServer()
+        {
+            base.OnStartServer();
+            NetworkServer.OnConnectedEvent += OnServerPlayerConnected;
+            PlaceAllPlayersAtStart();
+        }
+
+        public override void OnStopServer()
+        {
+            base.OnStopServer();
+            NetworkServer.OnConnectedEvent -= OnServerPlayerConnected;
+        }
+
+        [Server]
+        private void OnServerPlayerConnected(NetworkConnectionToClient conn)
+        {
+            if (_mapGenerator == null)
+                _mapGenerator = FindAnyObjectByType<MapGenerator>();
+            if (_mapGenerator == null || _mapGenerator.Map == null) return;
+
+            string startNodeId = _mapGenerator.Map.StartNode?.Id;
+            if (string.IsNullOrEmpty(startNodeId)) return;
+
+            SetNode(conn.connectionId, startNodeId);
+        }
 
         public override void OnStartClient()
         {
@@ -66,7 +93,10 @@ namespace Beastbane.Netcode
         [Server]
         public void SetNode(int connectionId, string nodeId)
         {
+            string oldId = _playerNodes.TryGetValue(connectionId, out var prev) ? prev : string.Empty;
             _playerNodes[connectionId] = nodeId;
+            PlayerNodeChanged?.Invoke(connectionId, oldId, nodeId);
+            UpdatePlayerSprite(connectionId, nodeId);
         }
 
         /// <summary>Owning client requests a move via the server.</summary>
@@ -74,7 +104,7 @@ namespace Beastbane.Netcode
         public void CmdRequestMove(string nodeId, NetworkConnectionToClient sender = null)
         {
             if (sender == null) return;
-            _playerNodes[sender.connectionId] = nodeId;
+            SetNode(sender.connectionId, nodeId);
         }
 
         /// <summary>Server removes a player (e.g. on disconnect).</summary>
@@ -82,6 +112,7 @@ namespace Beastbane.Netcode
         public void RemovePlayer(int connectionId)
         {
             _playerNodes.Remove(connectionId);
+            DestroyPlayerSprite(connectionId);
         }
 
         private void OnDictChanged(SyncIDictionary<int, string>.Operation op, int connectionId, string value)
@@ -162,6 +193,26 @@ namespace Beastbane.Netcode
                 if (kvp.Value != null) Destroy(kvp.Value);
             }
             _playerSpriteObjects.Clear();
+        }
+
+        [Server]
+        private void PlaceAllPlayersAtStart()
+        {
+            if (_mapGenerator == null)
+                _mapGenerator = FindAnyObjectByType<MapGenerator>();
+
+            if (_mapGenerator == null || _mapGenerator.Map == null) return;
+
+            string startNodeId = _mapGenerator.Map.StartNode?.Id;
+            if (string.IsNullOrEmpty(startNodeId)) return;
+
+            foreach (var conn in NetworkServer.connections.Values)
+            {
+                if (conn != null)
+                    SetNode(conn.connectionId, startNodeId);
+            }
+
+            Debug.Log($"PlayerMapState: placed {NetworkServer.connections.Count} player(s) at {startNodeId}");
         }
 
         private static Sprite _fallbackSprite;
