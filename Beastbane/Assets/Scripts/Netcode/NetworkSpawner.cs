@@ -6,6 +6,17 @@ namespace Beastbane.Netcode
 {
     public class NetworkSpawner : MonoBehaviour
     {
+
+        private void Awake()
+        {
+            // Start the NetworkServer via the NetworkManager, if not already running.
+            if (NetworkManager.singleton != null && !NetworkServer.active)
+            {
+                NetworkManager.singleton.StartServer();
+            }
+        }
+
+
         /// <summary>
         /// Use from Button.onClick — pass the int matching the SpawnObject enum
         /// (e.g. 0 = Map). Shows up under Static Parameters in the inspector.
