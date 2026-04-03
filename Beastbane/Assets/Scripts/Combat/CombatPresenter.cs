@@ -18,6 +18,7 @@ namespace Beastbane.Combat
         private CombatManager _combat;
         private CombatPhase _lastPhase = CombatPhase.Idle;
         private bool _built;
+        private readonly List<int> _lastHandSnapshot = new();
 
         private void LateUpdate()
         {
@@ -34,6 +35,7 @@ namespace Beastbane.Combat
                     _ui.Clear();
                     _built = false;
                     _lastPhase = CombatPhase.Idle;
+                    _lastHandSnapshot.Clear();
                 }
                 return;
             }
@@ -85,6 +87,9 @@ namespace Beastbane.Combat
         private void RebuildHand()
         {
             if (_db == null) return;
+            if (!HandChanged()) return;
+
+            SnapshotHand();
 
             var cards = new List<CardDisplayData>();
             foreach (int cardIdx in _combat.hand)
@@ -103,6 +108,23 @@ namespace Beastbane.Combat
             _ui.UpdateHand(cards);
         }
 
+        private bool HandChanged()
+        {
+            if (_lastHandSnapshot.Count != _combat.hand.Count) return true;
+            for (int i = 0; i < _lastHandSnapshot.Count; i++)
+            {
+                if (_lastHandSnapshot[i] != _combat.hand[i]) return true;
+            }
+            return false;
+        }
+
+        private void SnapshotHand()
+        {
+            _lastHandSnapshot.Clear();
+            foreach (int idx in _combat.hand)
+                _lastHandSnapshot.Add(idx);
+        }
+
         private void HandleInput()
         {
             if (_combat.Phase != CombatPhase.PlayerTurn) return;
@@ -116,8 +138,8 @@ namespace Beastbane.Combat
             var hit = Physics2D.OverlapPoint(worldPos);
             if (hit == null) return;
 
-            // End turn button
-            if (hit.transform.parent != null && hit.transform.parent.name == "EndTurnButton")
+            // End turn button (collider is on the EndTurnButton object itself)
+            if (hit.transform.name == "EndTurnButton")
             {
                 _combat.CmdEndPlayerTurn();
                 return;
