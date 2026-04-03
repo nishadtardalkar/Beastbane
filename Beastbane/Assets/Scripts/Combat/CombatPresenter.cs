@@ -86,7 +86,6 @@ namespace Beastbane.Combat
 
         private void RebuildHand()
         {
-            if (_db == null) return;
             if (!HandChanged()) return;
 
             SnapshotHand();
@@ -94,15 +93,28 @@ namespace Beastbane.Combat
             var cards = new List<CardDisplayData>();
             foreach (int cardIdx in _combat.hand)
             {
-                var card = _db.GetCard(cardIdx);
-                if (card == null) continue;
-                cards.Add(new CardDisplayData
+                var card = _db != null ? _db.GetCard(cardIdx) : null;
+                if (card != null)
                 {
-                    Name = card.cardName,
-                    Cost = card.manaCost,
-                    Type = card.cardType,
-                    Art = card.sprite
-                });
+                    cards.Add(new CardDisplayData
+                    {
+                        Name = card.cardName,
+                        Cost = card.manaCost,
+                        Type = card.cardType,
+                        Art = card.sprite
+                    });
+                }
+                else
+                {
+                    bool isStrike = cardIdx != CombatManager.FallbackDefend;
+                    cards.Add(new CardDisplayData
+                    {
+                        Name = isStrike ? "Strike" : "Defend",
+                        Cost = 1,
+                        Type = isStrike ? CardType.Attack : CardType.Skill,
+                        Art = null
+                    });
+                }
             }
 
             _ui.UpdateHand(cards);

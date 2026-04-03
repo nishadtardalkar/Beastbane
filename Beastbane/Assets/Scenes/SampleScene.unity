@@ -3472,7 +3472,7 @@ Sprite:
         format: 0
         dimension: 0
       m_DataSize: 80
-      _typelessdata: 000000bf0000003f000000000000003f0000003f00000000000000bf000000bf000000000000003f000000bf000000000000000000000000000000000000000000000000000000000000000000000000
+      _typelessdata: 000000bf0000003f000000000000003f0000003f00000000000000bf000000bf000000000000003f000000bf00000000000000000000803f0000803f0000803f00000000000000000000803f00000000
     m_Bindpose: []
     textureRect:
       serializedVersion: 2
@@ -8030,7 +8030,7 @@ MonoBehaviour:
   _heroSprite: {fileID: 0}
   _villainSprite: {fileID: 0}
   _backgroundSprite: {fileID: 0}
-  _db: {fileID: 0}
+  _db: {fileID: 11400000, guid: b2c0cac99c9f3eb4eb5cb65e7d92b117, type: 2}
   BackgroundRenderer: {fileID: 1803404713}
   HeroRenderer: {fileID: 1899008552}
   VillainRenderer: {fileID: 68198287}

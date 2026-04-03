@@ -55,6 +55,10 @@ namespace Beastbane.Combat
         public readonly SyncList<int> discardPile = new();
         public readonly SyncList<int> rewardCards = new();
 
+        // Negative indices used as fallback cards when no database is configured.
+        public const int FallbackStrike = -1;
+        public const int FallbackDefend = -2;
+
         // ── Server-only state ───────────────────────────────────────
 
         private readonly List<int> _drawPile = new();
@@ -109,7 +113,7 @@ namespace Beastbane.Combat
             _playerMaxEnergy = energy;
             _playerEnergy = energy;
 
-            var enemy = _db.GetEnemy(enemyIndex);
+            var enemy = _db != null ? _db.GetEnemy(enemyIndex) : null;
             _enemyMaxHP = enemy != null ? enemy.maxHP : 50;
             _enemyHP = _enemyMaxHP;
             _enemyBlock = 0;
@@ -118,7 +122,15 @@ namespace Beastbane.Combat
             _combatRng = new System.Random(Environment.TickCount);
 
             _fullDeck.Clear();
-            _fullDeck.AddRange(deck);
+            if (deck != null && deck.Count > 0)
+            {
+                _fullDeck.AddRange(deck);
+            }
+            else
+            {
+                for (int i = 0; i < 5; i++) _fullDeck.Add(FallbackStrike);
+                for (int i = 0; i < 5; i++) _fullDeck.Add(FallbackDefend);
+            }
 
             hand.Clear();
             discardPile.Clear();
@@ -208,16 +220,16 @@ namespace Beastbane.Combat
             if (handIndex < 0 || handIndex >= hand.Count) return;
 
             int cardIdx = hand[handIndex];
-            var card = _db.GetCard(cardIdx);
-            if (card == null) return;
 
-            if (card.manaCost > _playerEnergy) return;
+            int cost, damage, block;
+            GetCardStats(cardIdx, out cost, out damage, out block);
 
-            _playerEnergy -= card.manaCost;
+            if (cost > _playerEnergy) return;
+            _playerEnergy -= cost;
 
-            if (card.damage > 0)
+            if (damage > 0)
             {
-                int dmg = card.damage;
+                int dmg = damage;
                 if (_enemyBlock >= dmg)
                 {
                     _enemyBlock -= dmg;
@@ -230,14 +242,33 @@ namespace Beastbane.Combat
                 }
             }
 
-            if (card.block > 0)
-                _playerBlock += card.block;
+            if (block > 0)
+                _playerBlock += block;
 
             hand.RemoveAt(handIndex);
             discardPile.Add(cardIdx);
 
             if (_enemyHP <= 0)
                 EndCombat(true);
+        }
+
+        private void GetCardStats(int cardIdx, out int cost, out int damage, out int block)
+        {
+            var card = _db != null ? _db.GetCard(cardIdx) : null;
+            if (card != null)
+            {
+                cost = card.manaCost;
+                damage = card.damage;
+                block = card.block;
+                return;
+            }
+
+            switch (cardIdx)
+            {
+                case FallbackStrike: cost = 1; damage = 6; block = 0; break;
+                case FallbackDefend: cost = 1; damage = 0; block = 5; break;
+                default:             cost = 1; damage = 6; block = 0; break;
+            }
         }
 
         [Server]
@@ -272,31 +303,49 @@ namespace Beastbane.Combat
         [Server]
         private void PickEnemyIntent()
         {
-            var enemy = _db.GetEnemy(_enemyIndex);
-            if (enemy == null || enemy.actions.Count == 0)
+            var enemy = _db != null ? _db.GetEnemy(_enemyIndex) : null;
+            if (enemy != null && enemy.actions.Count > 0)
             {
-                _enemyIntentType = (int)IntentType.Attack;
-                _enemyIntentValue = 6;
-                return;
+                var action = enemy.actions[_enemyActionIndex % enemy.actions.Count];
+                _enemyIntentType = (int)action.intentType;
+                _enemyIntentValue = action.intentType == IntentType.Attack ? action.damage : action.block;
             }
-
-            var action = enemy.actions[_enemyActionIndex % enemy.actions.Count];
-            _enemyIntentType = (int)action.intentType;
-            _enemyIntentValue = action.intentType == IntentType.Attack ? action.damage : action.block;
+            else
+            {
+                bool attacks = _enemyActionIndex % 2 == 0;
+                _enemyIntentType = attacks ? (int)IntentType.Attack : (int)IntentType.Defend;
+                _enemyIntentValue = attacks ? 6 : 4;
+            }
         }
 
         [Server]
         private void ResolveEnemyAction()
         {
-            var enemy = _db.GetEnemy(_enemyIndex);
-            if (enemy == null || enemy.actions.Count == 0) return;
+            int intentType;
+            int dmgValue;
+            int blockValue;
 
-            var action = enemy.actions[_enemyActionIndex % enemy.actions.Count];
-            _enemyActionIndex++;
-
-            if (action.intentType == IntentType.Attack)
+            var enemy = _db != null ? _db.GetEnemy(_enemyIndex) : null;
+            if (enemy != null && enemy.actions.Count > 0)
             {
-                int dmg = action.damage;
+                var action = enemy.actions[_enemyActionIndex % enemy.actions.Count];
+                _enemyActionIndex++;
+                intentType = (int)action.intentType;
+                dmgValue = action.damage;
+                blockValue = action.block;
+            }
+            else
+            {
+                // Fallback: alternate Attack 6 / Defend 4
+                intentType = _enemyActionIndex % 2 == 0 ? (int)IntentType.Attack : (int)IntentType.Defend;
+                dmgValue = 6;
+                blockValue = 4;
+                _enemyActionIndex++;
+            }
+
+            if (intentType == (int)IntentType.Attack)
+            {
+                int dmg = dmgValue;
                 if (_playerBlock >= dmg)
                 {
                     _playerBlock -= dmg;
@@ -309,8 +358,8 @@ namespace Beastbane.Combat
                 }
             }
 
-            if (action.intentType == IntentType.Defend)
-                _enemyBlock += action.block;
+            if (intentType == (int)IntentType.Defend)
+                _enemyBlock += blockValue;
         }
 
         [Server]
