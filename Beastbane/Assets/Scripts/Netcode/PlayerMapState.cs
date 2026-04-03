@@ -54,7 +54,6 @@ namespace Beastbane.Netcode
         public override void OnStartServer()
         {
             base.OnStartServer();
-            ReparentUnderMapScene();
             NetworkServer.OnConnectedEvent += OnServerPlayerConnected;
             PlaceAllPlayersAtStart();
         }
@@ -82,7 +81,6 @@ namespace Beastbane.Netcode
         public override void OnStartClient()
         {
             base.OnStartClient();
-            ReparentUnderMapScene();
             _playerNodes.OnChange += OnDictChanged;
             _spritesNeedRefresh = true;
         }
@@ -150,27 +148,26 @@ namespace Beastbane.Netcode
             var node = _mapGenerator.Map.GetNodeById(nodeId);
             if (node == null || !node.IsCombatNode) return;
 
+            SwitchAllToScene(_combatSceneName);
+
             var runData = FindPlayerRunData(connectionId);
             if (runData == null || !runData.HeroSelected)
             {
-                Debug.LogWarning($"PlayerMapState: No PlayerRunData or hero not selected for conn {connectionId}.");
+                Debug.LogWarning($"PlayerMapState: No PlayerRunData or hero not selected for conn {connectionId}. " +
+                                 "Scene switched but combat not initialised.");
                 return;
             }
 
             if (_combatManager == null)
-                _combatManager = FindAnyObjectByType<CombatManager>();
+                _combatManager = FindAnyObjectByType<CombatManager>(FindObjectsInactive.Include);
             if (_combatManager == null)
             {
-                Debug.LogError("PlayerMapState: CombatManager not found.");
+                Debug.LogWarning("PlayerMapState: CombatManager not found. Scene switched but combat not initialised.");
                 return;
             }
 
             int enemyIndex = PickEnemyForNode(node);
-
             SubscribeCombat();
-
-            // Switch all players to combat scene
-            SwitchAllToScene(_combatSceneName);
 
             _combatManager.InitCombat(
                 connectionId,
@@ -189,11 +186,20 @@ namespace Beastbane.Netcode
         private void OnCombatEnded()
         {
             UnsubscribeCombat();
+            ReturnToMap();
+        }
 
-            // Switch everyone back to map
+        [Command(requiresAuthority = false)]
+        public void CmdReturnToMap()
+        {
+            ReturnToMap();
+        }
+
+        [Server]
+        private void ReturnToMap()
+        {
             SwitchAllToScene(_mapSceneName);
 
-            // Pass the map turn
             var turnState = FindAnyObjectByType<TurnState>();
             if (turnState != null)
                 turnState.EndTurn();
@@ -346,23 +352,20 @@ namespace Beastbane.Netcode
                 _sceneSwitcher = FindAnyObjectByType<SceneSwitcher>();
             if (_sceneSwitcher == null) return;
 
+            Debug.Log($"PlayerMapState: switching local scene to index {sceneIndex}");
             _sceneSwitcher.SwitchTo(sceneIndex);
+
+            int mapIdx = _sceneSwitcher.GetSceneIndex(_mapSceneName);
+            SetPlayerSpritesVisible(sceneIndex == mapIdx);
         }
 
-        private void ReparentUnderMapScene()
+        private void SetPlayerSpritesVisible(bool visible)
         {
-            if (_sceneSwitcher == null)
-                _sceneSwitcher = FindAnyObjectByType<SceneSwitcher>();
-            if (_sceneSwitcher == null) return;
-
-            var mapScene = _sceneSwitcher.GetScene(_mapSceneName);
-            if (mapScene == null)
+            foreach (var kvp in _playerSpriteObjects)
             {
-                Debug.LogWarning($"PlayerMapState: SceneSwitcher has no child named '{_mapSceneName}'.");
-                return;
+                if (kvp.Value != null)
+                    kvp.Value.SetActive(visible);
             }
-
-            transform.SetParent(mapScene.transform, true);
         }
 
         [Server]
