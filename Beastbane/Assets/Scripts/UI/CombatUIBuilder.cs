@@ -30,6 +30,11 @@ namespace Beastbane.UI
         [SerializeField] private Sprite _villainSprite;
         [SerializeField] private Sprite _backgroundSprite;
 
+        [Header("Combat Setup")]
+        [SerializeField] private GameDatabase _db;
+
+        public GameDatabase DB => _db;
+
         [HideInInspector] public SpriteRenderer BackgroundRenderer;
         [HideInInspector] public SpriteRenderer HeroRenderer;
         [HideInInspector] public SpriteRenderer VillainRenderer;
