@@ -90,6 +90,7 @@ namespace Beastbane.UI
 
         public void Build()
         {
+            Clear();
             _pixel = CreatePixelSprite();
 
             BuildBackground();

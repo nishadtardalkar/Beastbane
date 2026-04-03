@@ -2,6 +2,7 @@ using Beastbane.Data;
 using Mirror;
 using TMPro;
 using UnityEngine;
+using UnityEngine.InputSystem;
 
 namespace Beastbane.Combat
 {
@@ -200,12 +201,13 @@ namespace Beastbane.Combat
         private void HandleInput()
         {
             if (!IsFighter()) return;
-            if (!Input.GetMouseButtonDown(0)) return;
+            var mouse = Mouse.current;
+            if (mouse == null || !mouse.leftButton.wasPressedThisFrame) return;
 
             var cam = Camera.main;
             if (cam == null) return;
 
-            Vector2 worldPos = cam.ScreenToWorldPoint(Input.mousePosition);
+            Vector2 worldPos = cam.ScreenToWorldPoint(mouse.position.ReadValue());
             var hit = Physics2D.OverlapPoint(worldPos);
             if (hit == null) return;
 

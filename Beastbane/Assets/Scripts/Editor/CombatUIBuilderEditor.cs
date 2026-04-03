@@ -25,6 +25,7 @@ namespace Beastbane.EditorScripts
                     int group = Undo.GetCurrentGroup();
 
                     builder.Clear();
+                    CleanUpOldCombatController();
 
                     Undo.RegisterFullObjectHierarchyUndo(builder.gameObject, "Build Combat UI");
                     builder.Build();
@@ -33,6 +34,7 @@ namespace Beastbane.EditorScripts
                         Undo.RegisterCreatedObjectUndo(builder.transform.GetChild(i).gameObject, "Build Combat UI");
 
                     BuildCombatController(builder);
+                    BuildLocalComponents(builder);
 
                     Undo.CollapseUndoOperations(group);
                     EditorUtility.SetDirty(builder);
@@ -46,24 +48,49 @@ namespace Beastbane.EditorScripts
                     for (int i = builder.transform.childCount - 1; i >= 0; i--)
                         Undo.DestroyObjectImmediate(builder.transform.GetChild(i).gameObject);
 
+                    CleanUpOldCombatController();
+
                     Undo.CollapseUndoOperations(group);
                     EditorUtility.SetDirty(builder);
                 }
             }
         }
 
+        private static void CleanUpOldCombatController()
+        {
+            var existing = GameObject.Find("CombatController");
+            if (existing != null)
+                Undo.DestroyObjectImmediate(existing);
+        }
+
+        /// <summary>
+        /// CombatManager + NetworkIdentity at scene root so Mirror auto-spawns it.
+        /// Must NOT be under any SceneSwitcher child that gets disabled.
+        /// </summary>
         private static void BuildCombatController(CombatUIBuilder builder)
         {
             var db = builder.DB;
 
             var go = new GameObject("CombatController");
-            go.transform.SetParent(builder.transform, false);
             Undo.RegisterCreatedObjectUndo(go, "Build Combat UI");
 
             go.AddComponent<NetworkIdentity>();
 
             var combatManager = go.AddComponent<CombatManager>();
             SetSerializedField(combatManager, "_db", db);
+        }
+
+        /// <summary>
+        /// CombatPresenter + CardRewardUI under CombatUIBuilder (inside CombatScene).
+        /// These are plain MonoBehaviours that only need to run during combat.
+        /// </summary>
+        private static void BuildLocalComponents(CombatUIBuilder builder)
+        {
+            var db = builder.DB;
+
+            var go = new GameObject("CombatLocal");
+            go.transform.SetParent(builder.transform, false);
+            Undo.RegisterCreatedObjectUndo(go, "Build Combat UI");
 
             var presenter = go.AddComponent<CombatPresenter>();
             SetSerializedField(presenter, "_ui", builder);

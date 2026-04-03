@@ -3,6 +3,7 @@ using Beastbane.Netcode;
 using Mirror;
 using TMPro;
 using UnityEngine;
+using UnityEngine.InputSystem;
 
 namespace Beastbane.UI
 {
@@ -98,12 +99,13 @@ namespace Beastbane.UI
         {
             if (_selected) return;
             if (_heroCards == null) return;
-            if (!Input.GetMouseButtonDown(0)) return;
+            var mouse = Mouse.current;
+            if (mouse == null || !mouse.leftButton.wasPressedThisFrame) return;
 
             var cam = Camera.main;
             if (cam == null) return;
 
-            Vector2 worldPos = cam.ScreenToWorldPoint(Input.mousePosition);
+            Vector2 worldPos = cam.ScreenToWorldPoint(mouse.position.ReadValue());
             var hit = Physics2D.OverlapPoint(worldPos);
             if (hit == null) return;
 
