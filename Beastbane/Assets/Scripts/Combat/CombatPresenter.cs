@@ -140,16 +140,37 @@ namespace Beastbane.Combat
 
         private void HandleInput()
         {
-            if (_combat.Phase != CombatPhase.PlayerTurn) return;
-            if (!IsFighter()) return;
+            if (_combat.Phase != CombatPhase.PlayerTurn)
+            {
+                DebugThrottle($"[CombatPresenter] HandleInput blocked: Phase={_combat.Phase} (want PlayerTurn)");
+                return;
+            }
+
+            if (!IsFighter())
+            {
+                DebugThrottle($"[CombatPresenter] HandleInput blocked: IsFighter=false  " +
+                              $"localPlayer={(NetworkClient.localPlayer != null ? NetworkClient.localPlayer.netId.ToString() : "NULL")}  " +
+                              $"activePlayerNetId={_combat.ActivePlayerNetId}");
+                return;
+            }
+
             var mouse = Mouse.current;
-            if (mouse == null || !mouse.leftButton.wasPressedThisFrame) return;
+            if (mouse == null)
+            {
+                DebugThrottle("[CombatPresenter] HandleInput blocked: Mouse.current is null");
+                return;
+            }
+
+            if (!mouse.leftButton.wasPressedThisFrame) return;
 
             var cam = Camera.main;
-            if (cam == null) return;
+            if (cam == null) { Debug.LogWarning("[CombatPresenter] Camera.main is null!"); return; }
 
             Vector2 worldPos = cam.ScreenToWorldPoint(mouse.position.ReadValue());
             var hit = Physics2D.OverlapPoint(worldPos);
+
+            Debug.Log($"[CombatPresenter] Click at screen={mouse.position.ReadValue()} world={worldPos}  hit={hit?.gameObject.name ?? "NULL"}  slots={_ui.CardSlots?.Length ?? -1}");
+
             if (hit == null) return;
 
             // End turn button (collider is on the EndTurnButton object itself)
@@ -169,6 +190,14 @@ namespace Beastbane.Combat
                     return;
                 }
             }
+        }
+
+        private int _debugThrottleFrame = -1;
+        private void DebugThrottle(string msg)
+        {
+            if (Time.frameCount == _debugThrottleFrame) return;
+            _debugThrottleFrame = Time.frameCount;
+            Debug.Log(msg);
         }
 
         private bool IsFighter()
