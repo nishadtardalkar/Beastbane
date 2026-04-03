@@ -49,6 +49,7 @@ namespace Beastbane.EditorScripts
                         Undo.DestroyObjectImmediate(builder.transform.GetChild(i).gameObject);
 
                     CleanUpOldCombatController();
+                    CleanUpByName("CombatLocal");
 
                     Undo.CollapseUndoOperations(group);
                     EditorUtility.SetDirty(builder);
@@ -58,7 +59,12 @@ namespace Beastbane.EditorScripts
 
         private static void CleanUpOldCombatController()
         {
-            var existing = GameObject.Find("CombatController");
+            CleanUpByName("CombatController");
+        }
+
+        private static void CleanUpByName(string name)
+        {
+            var existing = GameObject.Find(name);
             if (existing != null)
                 Undo.DestroyObjectImmediate(existing);
         }
@@ -81,15 +87,20 @@ namespace Beastbane.EditorScripts
         }
 
         /// <summary>
-        /// CombatPresenter + CardRewardUI under CombatUIBuilder (inside CombatScene).
-        /// These are plain MonoBehaviours that only need to run during combat.
+        /// CombatPresenter + CardRewardUI as a sibling of CombatUIBuilder (under CombatScene).
+        /// NOT under CombatUIBuilder so Clear()/Build() doesn't destroy them.
         /// </summary>
         private static void BuildLocalComponents(CombatUIBuilder builder)
         {
             var db = builder.DB;
 
+            var existing = GameObject.Find("CombatLocal");
+            if (existing != null)
+                Undo.DestroyObjectImmediate(existing);
+
             var go = new GameObject("CombatLocal");
-            go.transform.SetParent(builder.transform, false);
+            if (builder.transform.parent != null)
+                go.transform.SetParent(builder.transform.parent, false);
             Undo.RegisterCreatedObjectUndo(go, "Build Combat UI");
 
             var presenter = go.AddComponent<CombatPresenter>();
