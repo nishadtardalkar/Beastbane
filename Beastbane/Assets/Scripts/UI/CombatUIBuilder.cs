@@ -80,12 +80,36 @@ namespace Beastbane.UI
         {
             for (int i = transform.childCount - 1; i >= 0; i--)
             {
+                var child = transform.GetChild(i).gameObject;
+                // Preserve scene-placed objects that carry custom components (e.g. CombatPresenter,
+                // CardRewardUI).  The builder only creates objects with Transform, SpriteRenderer,
+                // BoxCollider2D, or TextMeshPro; anything else is a hand-placed scene object.
+                if (HasCustomComponents(child)) continue;
 #if UNITY_EDITOR
-                DestroyImmediate(transform.GetChild(i).gameObject);
+                DestroyImmediate(child);
 #else
-                Destroy(transform.GetChild(i).gameObject);
+                Destroy(child);
 #endif
             }
+        }
+
+        /// <summary>
+        /// Returns true when <paramref name="go"/> has at least one component that
+        /// CombatUIBuilder itself would never add (i.e. not Transform, SpriteRenderer,
+        /// BoxCollider2D, or TextMeshPro).  Such objects are persistent scene objects
+        /// that must survive a Clear/Build cycle.
+        /// </summary>
+        private static bool HasCustomComponents(GameObject go)
+        {
+            foreach (var comp in go.GetComponents<Component>())
+            {
+                if (comp is Transform) continue;
+                if (comp is SpriteRenderer) continue;
+                if (comp is BoxCollider2D) continue;
+                if (comp is TextMeshPro) continue;
+                return true;
+            }
+            return false;
         }
 
         public void Build()
