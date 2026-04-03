@@ -150,14 +150,6 @@ namespace Beastbane.Netcode
 
             SwitchAllToScene(_combatSceneName);
 
-            var runData = FindPlayerRunData(connectionId);
-            if (runData == null || !runData.HeroSelected)
-            {
-                Debug.LogWarning($"PlayerMapState: No PlayerRunData or hero not selected for conn {connectionId}. " +
-                                 "Scene switched but combat not initialised.");
-                return;
-            }
-
             if (_combatManager == null)
                 _combatManager = FindAnyObjectByType<CombatManager>(FindObjectsInactive.Include);
             if (_combatManager == null)
@@ -166,16 +158,49 @@ namespace Beastbane.Netcode
                 return;
             }
 
+            int heroIndex = 0;
+            List<int> deck = new();
+            int currentHP = 80;
+            int maxHP = 80;
+            int energy = 3;
+
+            var runData = FindPlayerRunData(connectionId);
+            if (runData != null && runData.HeroSelected)
+            {
+                heroIndex = runData.HeroIndex;
+                deck = runData.GetDeckCopy();
+                currentHP = runData.CurrentHP;
+                maxHP = runData.MaxHP;
+                energy = runData.Energy;
+            }
+            else
+            {
+                if (_db != null && _db.heroes.Length > 0)
+                {
+                    var hero = _db.heroes[0];
+                    heroIndex = 0;
+                    maxHP = hero.maxHP;
+                    currentHP = hero.maxHP;
+                    energy = hero.startEnergy;
+                    foreach (var card in hero.startingDeck)
+                    {
+                        int ci = _db.GetCardIndex(card);
+                        if (ci >= 0) deck.Add(ci);
+                    }
+                }
+                Debug.Log($"PlayerMapState: No PlayerRunData for conn {connectionId}, using defaults (hero {heroIndex}).");
+            }
+
             int enemyIndex = PickEnemyForNode(node);
             SubscribeCombat();
 
             _combatManager.InitCombat(
                 connectionId,
-                runData.HeroIndex,
-                runData.GetDeckCopy(),
-                runData.CurrentHP,
-                runData.MaxHP,
-                runData.Energy,
+                heroIndex,
+                deck,
+                currentHP,
+                maxHP,
+                energy,
                 enemyIndex
             );
 
