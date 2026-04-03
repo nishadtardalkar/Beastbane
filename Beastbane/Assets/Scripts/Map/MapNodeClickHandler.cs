@@ -5,7 +5,9 @@ namespace Beastbane.Map
 {
     /// <summary>
     /// Attached to each map node GameObject by MapVisualizer.
-    /// Handles click via OnMouseDown — requires a Collider2D on the same object.
+    /// Handles click via OnMouseDown -- requires a Collider2D on the same object.
+    /// If the node is a combat node, combat starts and the map turn does NOT pass
+    /// until combat ends. Otherwise, the turn passes immediately.
     /// </summary>
     [RequireComponent(typeof(Collider2D))]
     public class MapNodeClickHandler : MonoBehaviour
@@ -41,8 +43,22 @@ namespace Beastbane.Map
 
             _playerMapState.CmdRequestMove(NodeId);
 
-            if (EndTurnAfterMove)
-                _turnState.CmdEndTurn();
+            // Combat nodes: don't end the map turn; combat will end it when done.
+            // Non-combat nodes: end turn immediately so next player can go.
+            if (!EndTurnAfterMove) return;
+
+            var generator = FindAnyObjectByType<MapGenerator>();
+            if (generator != null && generator.Map != null)
+            {
+                var node = generator.Map.GetNodeById(NodeId);
+                if (node != null && node.IsCombatNode)
+                {
+                    _playerMapState.CmdStartCombat(NodeId);
+                    return;
+                }
+            }
+
+            _turnState.CmdEndTurn();
         }
     }
 }

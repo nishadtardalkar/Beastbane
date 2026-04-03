@@ -74,5 +74,15 @@ namespace Beastbane.UI
             }
             return null;
         }
+
+        public int GetSceneIndex(string sceneName)
+        {
+            for (int i = 0; i < transform.childCount; i++)
+            {
+                if (string.Equals(transform.GetChild(i).name, sceneName, StringComparison.OrdinalIgnoreCase))
+                    return i;
+            }
+            return -1;
+        }
     }
 }

@@ -1,5 +1,7 @@
 using System;
 using System.Collections.Generic;
+using Beastbane.Combat;
+using Beastbane.Data;
 using Beastbane.Map;
 using Beastbane.UI;
 using Mirror;
@@ -10,7 +12,8 @@ namespace Beastbane.Netcode
     /// <summary>
     /// Central tracker for every player's current map node.
     /// Attach to a network-spawned object (e.g. the MapSpawner prefab).
-    /// Also manages per-player sprites positioned over their current node.
+    /// Also manages per-player sprites positioned over their current node,
+    /// and orchestrates combat start/end with CombatManager.
     /// </summary>
     public class PlayerMapState : NetworkBehaviour
     {
@@ -20,13 +23,16 @@ namespace Beastbane.Netcode
         [SerializeField] private int _playerSortingOrder = 20;
         [SerializeField] private float _stackOffset = 0.4f;
 
+        [Header("Combat")]
+        [SerializeField] private GameDatabase _db;
+        [SerializeField] private string _combatSceneName = "CombatScene";
+
         private static readonly Color[] PlayerColors =
         {
             Color.cyan, Color.yellow, Color.magenta, Color.green,
             new(1f, 0.5f, 0f), new(0.5f, 0.5f, 1f)
         };
 
-        /// <summary>Maps connectionId -> current MapNode.Id</summary>
         private readonly SyncDictionary<int, string> _playerNodes = new();
 
         [SyncVar(hook = nameof(OnActiveSceneChanged))]
@@ -41,8 +47,8 @@ namespace Beastbane.Netcode
         private MapVisualizer _visualizer;
         private MapGenerator _mapGenerator;
         private SceneSwitcher _sceneSwitcher;
+        private CombatManager _combatManager;
 
-        /// <summary>Fires on all clients: (connectionId, oldNodeId, newNodeId)</summary>
         public event Action<int, string, string> PlayerNodeChanged;
 
         public override void OnStartServer()
@@ -57,6 +63,7 @@ namespace Beastbane.Netcode
         {
             base.OnStopServer();
             NetworkServer.OnConnectedEvent -= OnServerPlayerConnected;
+            UnsubscribeCombat();
         }
 
         [Server]
@@ -106,10 +113,8 @@ namespace Beastbane.Netcode
 
         public int PlayerCount => _playerNodes.Count;
 
-        /// <summary>Iterate all (connectionId, nodeId) pairs.</summary>
         public IEnumerable<KeyValuePair<int, string>> AllPlayers() => _playerNodes;
 
-        /// <summary>Server sets a player's node (e.g. initial placement).</summary>
         [Server]
         public void SetNode(int connectionId, string nodeId)
         {
@@ -117,10 +122,8 @@ namespace Beastbane.Netcode
             _playerNodes[connectionId] = nodeId;
             PlayerNodeChanged?.Invoke(connectionId, oldId, nodeId);
             UpdatePlayerSprite(connectionId, nodeId);
-            UpdateActiveScene(nodeId);
         }
 
-        /// <summary>Owning client requests a move via the server.</summary>
         [Command(requiresAuthority = false)]
         public void CmdRequestMove(string nodeId, NetworkConnectionToClient sender = null)
         {
@@ -128,7 +131,124 @@ namespace Beastbane.Netcode
             SetNode(sender.connectionId, nodeId);
         }
 
-        /// <summary>Server removes a player (e.g. on disconnect).</summary>
+        // ── Combat Integration ──────────────────────────────────────
+
+        [Command(requiresAuthority = false)]
+        public void CmdStartCombat(string nodeId, NetworkConnectionToClient sender = null)
+        {
+            if (sender == null) return;
+            ServerStartCombat(sender.connectionId, nodeId);
+        }
+
+        [Server]
+        private void ServerStartCombat(int connectionId, string nodeId)
+        {
+            if (_mapGenerator == null)
+                _mapGenerator = FindAnyObjectByType<MapGenerator>();
+            if (_mapGenerator == null || _mapGenerator.Map == null) return;
+
+            var node = _mapGenerator.Map.GetNodeById(nodeId);
+            if (node == null || !node.IsCombatNode) return;
+
+            var runData = FindPlayerRunData(connectionId);
+            if (runData == null || !runData.HeroSelected)
+            {
+                Debug.LogWarning($"PlayerMapState: No PlayerRunData or hero not selected for conn {connectionId}.");
+                return;
+            }
+
+            if (_combatManager == null)
+                _combatManager = FindAnyObjectByType<CombatManager>();
+            if (_combatManager == null)
+            {
+                Debug.LogError("PlayerMapState: CombatManager not found.");
+                return;
+            }
+
+            int enemyIndex = PickEnemyForNode(node);
+
+            SubscribeCombat();
+
+            // Switch all players to combat scene
+            SwitchAllToScene(_combatSceneName);
+
+            _combatManager.InitCombat(
+                connectionId,
+                runData.HeroIndex,
+                runData.GetDeckCopy(),
+                runData.CurrentHP,
+                runData.MaxHP,
+                runData.Energy,
+                enemyIndex
+            );
+
+            Debug.Log($"PlayerMapState: Started combat for conn {connectionId} on node {nodeId}, enemy {enemyIndex}");
+        }
+
+        [Server]
+        private void OnCombatEnded()
+        {
+            UnsubscribeCombat();
+
+            // Switch everyone back to map
+            SwitchAllToScene(_mapSceneName);
+
+            // Pass the map turn
+            var turnState = FindAnyObjectByType<TurnState>();
+            if (turnState != null)
+                turnState.EndTurn();
+        }
+
+        [Server]
+        private void SubscribeCombat()
+        {
+            if (_combatManager == null)
+                _combatManager = FindAnyObjectByType<CombatManager>();
+            if (_combatManager != null)
+                _combatManager.CombatEnded += OnCombatEnded;
+        }
+
+        [Server]
+        private void UnsubscribeCombat()
+        {
+            if (_combatManager != null)
+                _combatManager.CombatEnded -= OnCombatEnded;
+        }
+
+        [Server]
+        private int PickEnemyForNode(MapNode node)
+        {
+            if (_db == null || _db.enemies.Length == 0) return 0;
+
+            // Boss nodes get the last enemy, elites get middle, combat gets random from first half
+            if (node.IsBoss && _db.enemies.Length > 0)
+                return _db.enemies.Length - 1;
+            if (node.NodeType == MapNode.Elite && _db.enemies.Length > 1)
+                return _db.enemies.Length / 2;
+
+            return UnityEngine.Random.Range(0, Mathf.Max(1, _db.enemies.Length / 2));
+        }
+
+        [Server]
+        private void SwitchAllToScene(string sceneName)
+        {
+            if (_sceneSwitcher == null)
+                _sceneSwitcher = FindAnyObjectByType<SceneSwitcher>();
+            if (_sceneSwitcher == null) return;
+
+            int idx = _sceneSwitcher.GetSceneIndex(sceneName);
+            if (idx < 0)
+            {
+                Debug.LogWarning($"PlayerMapState: SceneSwitcher has no child named '{sceneName}'.");
+                return;
+            }
+
+            _activeSceneIndex = idx;
+            SwitchLocalScene(idx);
+        }
+
+        // ── Existing methods ────────────────────────────────────────
+
         [Server]
         public void RemovePlayer(int connectionId)
         {
@@ -145,12 +265,10 @@ namespace Beastbane.Netcode
                     UpdatePlayerSprite(connectionId, _playerNodes[connectionId]);
                     break;
                 case SyncIDictionary<int, string>.Operation.OP_SET:
-                    // value = old node id for OP_SET
                     PlayerNodeChanged?.Invoke(connectionId, value, _playerNodes[connectionId]);
                     UpdatePlayerSprite(connectionId, _playerNodes[connectionId]);
                     break;
                 case SyncIDictionary<int, string>.Operation.OP_REMOVE:
-                    // value = old node id for OP_REMOVE
                     PlayerNodeChanged?.Invoke(connectionId, value, string.Empty);
                     DestroyPlayerSprite(connectionId);
                     break;
@@ -217,20 +335,6 @@ namespace Beastbane.Netcode
             _playerSpriteObjects.Clear();
         }
 
-        [Server]
-        private void UpdateActiveScene(string nodeId)
-        {
-            if (_mapGenerator == null)
-                _mapGenerator = FindAnyObjectByType<MapGenerator>();
-            if (_mapGenerator == null || _mapGenerator.Map == null) return;
-
-            var node = _mapGenerator.Map.GetNodeById(nodeId);
-            if (node == null) return;
-
-            _activeSceneIndex = node.NodeType;
-            SwitchLocalScene(_activeSceneIndex);
-        }
-
         private void OnActiveSceneChanged(int oldIndex, int newIndex)
         {
             SwitchLocalScene(newIndex);
@@ -279,6 +383,16 @@ namespace Beastbane.Netcode
             }
 
             Debug.Log($"PlayerMapState: placed {NetworkServer.connections.Count} player(s) at {startNodeId}");
+        }
+
+        private static PlayerRunData FindPlayerRunData(int connectionId)
+        {
+            foreach (var prd in FindObjectsByType<PlayerRunData>(FindObjectsSortMode.None))
+            {
+                if (prd.connectionToClient != null && prd.connectionToClient.connectionId == connectionId)
+                    return prd;
+            }
+            return null;
         }
 
         private static Sprite _fallbackSprite;
